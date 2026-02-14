@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    url TEXT NOT NULL UNIQUE,
+    name TEXT,
+    current_price DECIMAL(10, 2),
+    target_price DECIMAL(10, 2),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

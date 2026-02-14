@@ -5,10 +5,16 @@ import (
 	"pricepulse/internal/database"
 
 	"github.com/derkres11/price-pulse/internal/transport/http"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	_ = godotenv.Load()
+
 	db := database.NewPostgresPool()
+	defer db.Close()
+
+	log.Println("Server is starting...")
 	handler := http.NewHandler(db)
 	srv := handler.InitRoutes()
 
