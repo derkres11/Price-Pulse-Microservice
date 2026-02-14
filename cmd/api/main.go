@@ -2,12 +2,14 @@ package main
 
 import (
 	"log"
+	"pricepulse/internal/database"
 
 	"github.com/derkres11/price-pulse/internal/transport/http"
 )
 
 func main() {
-	handler := http.NewHandler()
+	db := database.NewPostgresPool()
+	handler := http.NewHandler(db)
 	srv := handler.InitRoutes()
 
 	log.Println("Server started on :8080")
