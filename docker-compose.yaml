@@ -9,6 +9,15 @@ services:
       - .env
     depends_on:
       - db
+    migrate:
+      image: migrate/migrate
+      volumes:
+      - ./migrations:/migrations
+
+      command: -path=/migrations/ -database "postgres://admin:secret@db:5432/pricepulse?sslmode=disable" up
+      depends_on:
+        db:
+           condition: service_healthy
 
   db:  
     image: postgres:15

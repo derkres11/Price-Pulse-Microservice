@@ -1,8 +1,11 @@
 CREATE TABLE IF NOT EXISTS products (
-    id SERIAL PRIMARY KEY,
-    url TEXT NOT NULL UNIQUE,
-    name TEXT,
-    current_price DECIMAL(10, 2),
-    target_price DECIMAL(10, 2),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+    id BIGSERIAL PRIMARY KEY,                
+    url TEXT NOT NULL UNIQUE,                
+    title TEXT NOT NULL,                    
+    current_price DECIMAL(12, 2) DEFAULT 0,  
+    target_price DECIMAL(12, 2) DEFAULT 0,   
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+)
+
+CREATE INDEX IF NOT EXISTS idx_products_url ON products (url);
