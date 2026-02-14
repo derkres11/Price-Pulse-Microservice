@@ -1,0 +1,17 @@
+# Binary files
+/main
+/api
+/*.exe
+
+# Logs
+*.log
+
+# Environment variables (DB password secrets)
+.env
+
+# Temporary editor folders
+.idea/
+.vscode/
+
+# If you ever decide to download dependencies in the project (rare, but it happens)
+vendor/
