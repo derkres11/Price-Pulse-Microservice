@@ -4,6 +4,7 @@ import (
 	"log"
 	"pricepulse/internal/database"
 
+	"github.com/derkres11/price-pulse/internal/service"
 	"github.com/derkres11/price-pulse/internal/transport/http"
 	"github.com/joho/godotenv"
 )
@@ -11,13 +12,21 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	db := database.NewPostgresPool()
-	defer db.Close()
+	// 1. Db Connection Pool
+	dbPool := database.NewPostgresPool()
+	defer dbPool.Close()
 
-	log.Println("Server is starting...")
-	handler := http.NewHandler(db)
+	// 2. Product Repository
+	repo := database.NewProductRepo(dbPool)
+
+	// 3. Product Service
+	productService := service.NewProductService(repo)
+
+	// 4. HTTP Handler
+	handler := http.NewHandler(productService)
+
+	// 5. Start HTTP Server
 	srv := handler.InitRoutes()
-
 	log.Println("Server started on :8080")
 	if err := srv.Run(":8080"); err != nil {
 		log.Fatalf("error running server: %s", err.Error())
