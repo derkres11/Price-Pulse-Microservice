@@ -61,9 +61,3 @@ func (s *ProductService) CheckPrices(ctx context.Context) error {
 
 }
 
-func (s *ProductService) mockFetchPrice(url string) (float64, error) {
-	// This is a stub. In a real implementation, you'd fetch the page and parse the price.
-	// For now, let's just return a random price for demonstration purposes.
-	return 99.99, nil
-}
-
