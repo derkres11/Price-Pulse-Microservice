@@ -3,29 +3,31 @@ package main
 import (
 	"context"
 	"log"
+	"net/http" // Standard library for HTTP server
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/derkres11/price-pulse/internal/broker"
 	"github.com/derkres11/price-pulse/internal/database"
 	"github.com/derkres11/price-pulse/internal/service"
-	"github.com/derkres11/price-pulse/internal/transport/http"
+	transportHTTP "github.com/derkres11/price-pulse/internal/transport/http" // Alias to avoid conflict with net/http
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	_ = godotenv.Load()
 
+	// Resource initialization
 	dbPool := database.NewPostgresPool()
-	defer dbPool.Close()
-
 	cache := database.NewCache("localhost:6379")
 	brokers := []string{"localhost:9092"}
 
 	producer := broker.NewProductProducer(brokers, "product_updates")
-	defer producer.Close()
-
 	repo := database.NewProductRepo(dbPool)
 	productService := service.NewProductService(repo, producer, cache)
 
+	// Start Background Consumer (Watcher)
 	consumer := broker.NewProductConsumer(brokers, "product_updates", "watcher-group")
 	go func() {
 		log.Println("Watcher: background consumer started")
@@ -34,11 +36,30 @@ func main() {
 		})
 	}()
 
-	handler := http.NewHandler(productService)
-	srv := handler.InitRoutes()
+	// Initialize Handler and wrap Gin into standard http.Server
+	handler := transportHTTP.NewHandler(productService)
 
-	log.Println("Server started on :8080")
-	if err := srv.Run(":8080"); err != nil {
-		log.Fatalf("error running server: %s", err.Error())
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: handler.InitRoutes(),
 	}
+
+	// Start HTTP server in a goroutine so it doesn't block
+	go func() {
+		log.Println("Server started on :8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("error running server: %s", err.Error())
+		}
+	}()
+
+	// --- SECTION: GRACEFUL SHUTDOWN ---
+
+	// Create channel to listen for OS signals
+	quit := make(chan os.Signal, 1)
+	// Notify channel on interrupt (Ctrl+C) or termination signals
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	// Block until we receive a signal
+	<-quit
+	log.Println("Shutdown signal received, shutting down gracefully...")
 }
