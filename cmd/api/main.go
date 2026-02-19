@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"log"
-	"pricepulse/internal/broker"
-	"pricepulse/internal/database"
-	"pricepulse/internal/service"
-	"pricepulse/internal/transport/http"
 
+	"github.com/derkres11/price-pulse/internal/broker"
+	"github.com/derkres11/price-pulse/internal/database"
+	"github.com/derkres11/price-pulse/internal/service"
+	"github.com/derkres11/price-pulse/internal/transport/http"
 	"github.com/joho/godotenv"
 )
 
@@ -18,14 +18,12 @@ func main() {
 	defer dbPool.Close()
 
 	cache := database.NewCache("localhost:6379")
-
 	brokers := []string{"localhost:9092"}
 
 	producer := broker.NewProductProducer(brokers, "product_updates")
 	defer producer.Close()
 
 	repo := database.NewProductRepo(dbPool)
-
 	productService := service.NewProductService(repo, producer, cache)
 
 	consumer := broker.NewProductConsumer(brokers, "product_updates", "watcher-group")

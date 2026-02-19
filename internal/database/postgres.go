@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func NewPostgresPool() *pgxpool.Pool {
@@ -23,7 +23,7 @@ func NewPostgresPool() *pgxpool.Pool {
 	var err error
 
 	for i := 0; i < 5; i++ {
-		pool, err = pgxpool.Connect(context.Background(), dsn)
+		pool, err = pgxpool.New(context.Background(), dsn)
 
 		if err == nil {
 			err = pool.Ping(context.Background())
