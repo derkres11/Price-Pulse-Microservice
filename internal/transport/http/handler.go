@@ -1,6 +1,7 @@
 package http
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/derkres11/price-pulse/internal/domain"
@@ -9,6 +10,7 @@ import (
 
 type Handler struct {
 	service domain.ProductService
+	logger  *slog.Logger
 }
 
 func NewHandler(s domain.ProductService) *Handler {

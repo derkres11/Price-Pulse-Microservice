@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 
 	"github.com/derkres11/price-pulse/internal/broker"
 	"github.com/derkres11/price-pulse/internal/database"
@@ -14,16 +15,34 @@ type ProductService struct {
 	repo     domain.ProductRepository
 	producer *broker.ProductProducer
 	cache    *database.Cache
+	logger   *slog.Logger
 }
 
-func NewProductService(repo domain.ProductRepository, producer *broker.ProductProducer, cache *database.Cache) *ProductService {
+func NewProductService(repo domain.ProductRepository, producer *broker.ProductProducer, cache *database.Cache, logger *slog.Logger) *ProductService {
 	return &ProductService{
 		repo:     repo,
 		producer: producer,
 		cache:    cache,
+		logger:   logger,
 	}
 }
 
+func (s *ProductService) Create(ctx context.Context, p *domain.Product) error {
+	// Log the action with attributes
+	s.logger.Info("creating new product", slog.String("url", p.URL))
+
+	if err := s.repo.Create(ctx, p); err != nil {
+		s.logger.Error("failed to create product in db",
+			slog.String("error", err.Error()),
+			slog.String("url", p.URL),
+		)
+		return err
+	}
+
+	// Send to Kafka...
+	return nil
+
+}
 func (s *ProductService) TrackProduct(ctx context.Context, url string, target_price float64) error {
 	p := &domain.Product{
 		URL:         url,
