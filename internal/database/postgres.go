@@ -7,11 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool" // Убедись, что в go.mod v4, если v5 — поправь путь
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 func NewPostgresPool() *pgxpool.Pool {
-	// Добавили sslmode=disable
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),

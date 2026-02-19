@@ -52,7 +52,7 @@ func (r *ProductRepo) GetAll(ctx context.Context) ([]domain.Product, error){
 		if err != nil{
 			return nil, err
 		}
-
+		
 		defer rows.Close()
 
 		var products []domain.Product

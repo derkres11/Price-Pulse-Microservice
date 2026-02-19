@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"pricepulse/internal/database"
 
@@ -12,23 +13,31 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	// 1. Db Connection Pool
+	// 1. Инфраструктура
 	dbPool := database.NewPostgresPool()
 	defer dbPool.Close()
 
-	// 2. Product Repository
+	// 2. Брокер (Producer)
+	producer := broker.NewProductProducer([]string{"localhost:9092"}, "product_updates")
+	defer producer.Close()
+
+	// 3. Слои приложения
 	repo := database.NewProductRepo(dbPool)
+	svc := service.NewProductService(repo, producer)
 
-	// 3. Product Service
-	productService := service.NewProductService(repo)
+	// 4. ЗАПУСК КОНСЬЮМЕРА (Watcher)
+	// Запускаем в фоне через 'go func()'
+	consumer := broker.NewProductConsumer([]string{"localhost:9092"}, "product_updates", "watcher-group")
+	go func() {
+		log.Println("Watcher: Kafka Consumer is running...")
+		consumer.Start(context.Background(), func(id int64) error {
+			// Здесь вызываем метод сервиса, который мы подготовили
+			return svc.ProcessSingleProduct(context.Background(), id)
+		})
+	}()
 
-	// 4. HTTP Handler
-	handler := http.NewHandler(productService)
-
-	// 5. Start HTTP Server
-	srv := handler.InitRoutes()
-	log.Println("Server started on :8080")
-	if err := srv.Run(":8080"); err != nil {
-		log.Fatalf("error running server: %s", err.Error())
-	}
+	// 5. Запуск API
+	handler := http.NewHandler(svc)
+	log.Println("API: Server is running on :8080")
+	handler.InitRoutes().Run(":8080")
 }

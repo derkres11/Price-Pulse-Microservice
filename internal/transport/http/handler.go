@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin" // Добавили Gin
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
