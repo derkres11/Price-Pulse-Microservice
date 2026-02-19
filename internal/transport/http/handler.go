@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"strconv"
 
-	_ "github.com/derkres11/price-pulse/docs" // Import generated docs
+	_ "github.com/derkres11/price-pulse/docs"
 	"github.com/derkres11/price-pulse/internal/domain"
 	"github.com/derkres11/price-pulse/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/swaggo/gin-swagger"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Handler struct {
@@ -34,7 +36,8 @@ func NewHandler(services *service.ProductService, logger *slog.Logger) *Handler 
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.Default()
 
-	// Prometheus metrics endpoint
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	products := router.Group("/products")

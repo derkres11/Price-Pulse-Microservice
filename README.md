@@ -1,36 +1,37 @@
 # PricePulse 📈
 
-A high-performance asynchronous price monitoring service built with Go. It tracks product prices, notifies about changes, and uses a microservices-ready architecture.
+A high-performance asynchronous price monitoring service built with Go. 
 
 ## 🚀 Features
-- **Containerized Environment**: Fully Dockerized setup for seamless deployment.
-- **Asynchronous Processing**: Uses Kafka to decouple API and price tracking logic.
-- **Real-time Scraping**: Integrated with Colly for fetching actual prices from web pages.
-- **Fast Caching**: Redis integration for quick price lookups and reduced DB load.
-- **Clean Architecture**: Strictly separated layers: Domain, Service, Repository, and Transport.
-- **Graceful Shutdown**: Properly closes all connections (Postgres, Kafka, Redis) to ensure data integrity.
-- **Structured Logging**: JSON logs using `log/slog` for modern observability.
-- **Static Analysis**: Integrated `golangci-lint` for maintaining high code quality.
+- **Containerized Environment**: Fully Dockerized setup.
+- **Asynchronous Processing**: Uses Kafka for price tracking events.
+- **Fast Caching**: Redis integration for quick price lookups.
+- **Clean Architecture**: Separated Domain, Service, Repository, and Transport layers.
+- **Graceful Shutdown**: Safe termination of all system components.
+- **Structured Logging**: JSON logs using `log/slog`.
+- **API Documentation**: Interactive documentation via **Swagger UI**.
+- **Static Analysis**: Enforced code quality with `golangci-lint`.
 
 ## 🛠 Tech Stack
 - **Language**: Go (Golang)
-- **Containerization**: Docker & Docker Compose
-- **Database**: PostgreSQL (Persistence)
-- **Message Broker**: Apache Kafka (Async task distribution)
-- **Cache**: Redis
-- **Monitoring**: Prometheus (Metrics) & Grafana (Dashboards)
+- **Infrastructure**: Docker, PostgreSQL, Kafka, Redis
+- **Monitoring**: Prometheus
+- **API**: Gin Gonic, Swagger (swaggo)
 - **Quality**: golangci-lint
-- **Frameworks**: Gin (HTTP), Colly (Web Scraping), pgx (Database Driver)
-
-## 🏗 Architecture & Design
-The project follows **Clean Architecture** and **Event-Driven Design**:
-1. **API Service**: Accepts HTTP requests, persists product info, and produces events to Kafka.
-2. **Watcher Service**: Consumes events, scrapes real prices, and updates the Database/Cache.
-3. **Protobuf Contracts**: API definitions are described in `.proto` files for future gRPC implementation.
 
 ## 🚦 Getting Started
 
-### Prerequisites
-- Docker & Docker Compose
-- Go 1.21+
+### API Documentation
+Once the app is running, access the interactive Swagger UI at:
+`http://localhost:8080/swagger/index.html`
 
+### Installation
+1. Setup your `.env` file (copy from `.env.example`).
+2. Run infrastructure: `docker-compose up -d postgres redis kafka`.
+3. Run the app: `go run cmd/main.go` or `make run`.
+4. Lint code: `make lint`.
+
+## 📡 Roadmap
+- [ ] **Protobuf & gRPC**: Define service contracts and implement gRPC server.
+- [ ] **Unit Testing**: Implement mocks and achieve 80% coverage.
+- [ ] **Grafana**: Setup visual dashboards for Prometheus metrics.
