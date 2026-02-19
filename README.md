@@ -10,6 +10,7 @@ A high-performance asynchronous price monitoring service built with Go. It track
 - **Clean Architecture**: Strictly separated layers: Domain, Service, Repository, and Transport.
 - **Graceful Shutdown**: Properly closes all connections (Postgres, Kafka, Redis) to ensure data integrity.
 - **Structured Logging**: JSON logs using `log/slog` for modern observability.
+- **Static Analysis**: Integrated `golangci-lint` for maintaining high code quality.
 
 ## 🛠 Tech Stack
 - **Language**: Go (Golang)
@@ -17,22 +18,19 @@ A high-performance asynchronous price monitoring service built with Go. It track
 - **Database**: PostgreSQL (Persistence)
 - **Message Broker**: Apache Kafka (Async task distribution)
 - **Cache**: Redis
+- **Monitoring**: Prometheus (Metrics) & Grafana (Dashboards)
+- **Quality**: golangci-lint
 - **Frameworks**: Gin (HTTP), Colly (Web Scraping), pgx (Database Driver)
 
 ## 🏗 Architecture & Design
 The project follows **Clean Architecture** and **Event-Driven Design**:
 1. **API Service**: Accepts HTTP requests, persists product info, and produces events to Kafka.
 2. **Watcher Service**: Consumes events, scrapes real prices, and updates the Database/Cache.
-3. **gRPC Ready**: The service layer is designed to be easily wrapped in a gRPC server for high-speed inter-service communication (replacing or supplementing REST).
-
-
-
-
-[Image of Hexagonal Architecture diagram]
-
+3. **Protobuf Contracts**: API definitions are described in `.proto` files for future gRPC implementation.
 
 ## 🚦 Getting Started
 
 ### Prerequisites
 - Docker & Docker Compose
 - Go 1.21+
+
