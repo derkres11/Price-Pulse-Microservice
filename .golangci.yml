@@ -1,0 +1,28 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck    # Checks if errors are handled (if err != nil)
+    - govet       # Reports suspicious constructs (printf errors, lock copying)
+    - staticcheck # Massive set of checks for logical and performance errors
+    - gosimple    # Suggests simplified code patterns
+    - unused      # Finds unused variables, constants, and functions
+    - gofmt       # Checks if the code is formatted according to standard
+    - revive      # Fast and configurable linter (replacement for golint)
+
+linters-settings:
+  govet:
+    check-shadowing: true # Detects when a variable shadows one from an outer scope
+  revive:
+    rules:
+      - name: exported # Checks for comments on public functions
+        severity: warning
+        disabled: true # Disabled for now to avoid noise during development
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
