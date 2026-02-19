@@ -4,19 +4,23 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"pricepulse/internal/broker"
-	"pricepulse/internal/domain"
+
+	"github.com/derkres11/price-pulse/internal/broker"
+	"github.com/derkres11/price-pulse/internal/database"
+	"github.com/derkres11/price-pulse/internal/domain"
 )
 
 type ProductService struct {
 	repo     domain.ProductRepository
 	producer *broker.ProductProducer
+	cache    *database.Cache
 }
 
-func NewProductService(repo domain.ProductRepository, producer *broker.ProductProducer) *ProductService {
+func NewProductService(repo domain.ProductRepository, producer *broker.ProductProducer, cache *database.Cache) *ProductService {
 	return &ProductService{
 		repo:     repo,
 		producer: producer,
+		cache:    cache,
 	}
 }
 
@@ -72,5 +76,7 @@ func (s *ProductService) mockFetchPrice(url string) (float64, error) {
 func (s *ProductService) ProcessSingleProduct(ctx context.Context, id int64) error {
 	log.Printf("Watcher: processing product %d", id)
 	newPrice, _ := s.mockFetchPrice("url")
+
+	_ = s.cache.SetPrice(ctx, id, newPrice)
 	return s.repo.UpdatePrice(ctx, id, newPrice)
 }
