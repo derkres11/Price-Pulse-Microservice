@@ -99,3 +99,16 @@ func (s *ProductService) ProcessSingleProduct(ctx context.Context, id int64) err
 	_ = s.cache.SetPrice(ctx, id, newPrice)
 	return s.repo.UpdatePrice(ctx, id, newPrice)
 }
+
+func (s *ProductService) GetByID(ctx context.Context, id int64) (*domain.Product, error) {
+	s.logger.Info("fetching product by id", slog.Int64("id", id))
+
+	// First, try to get from repo (later you can add Redis logic here)
+	product, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		s.logger.Error("failed to find product", slog.Int64("id", id), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	return product, nil
+}

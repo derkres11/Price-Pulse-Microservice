@@ -3,45 +3,76 @@ package http
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/derkres11/price-pulse/internal/domain"
+	"github.com/derkres11/price-pulse/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Handler struct {
-	service domain.ProductService
-	logger  *slog.Logger
+	services *service.ProductService
+	logger   *slog.Logger
 }
 
-func NewHandler(s domain.ProductService) *Handler {
-	return &Handler{service: s}
+// Update constructor to accept logger
+func NewHandler(services *service.ProductService, logger *slog.Logger) *Handler {
+	return &Handler{
+		services: services,
+		logger:   logger,
+	}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.Default()
-	router.GET("/health", h.HealthCheck)
 
-	router.POST("/products", h.TrackProduct)
+	// Prometheus metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	products := router.Group("/products")
+	{
+		products.POST("/", h.CreateProduct)
+		products.GET("/:id", h.GetProduct)
+	}
 
 	return router
 }
 
-func (h *Handler) HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
-
-func (h *Handler) TrackProduct(c *gin.Context) {
-	var input struct {
-		URL         string  `json:"url"`
-		TargetPrice float64 `json:"target_price"`
-	}
+// CreateProduct handler
+func (h *Handler) CreateProduct(c *gin.Context) {
+	var input domain.Product
 	if err := c.ShouldBindJSON(&input); err != nil {
+		h.logger.Error("invalid input", slog.String("error", err.Error()))
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.TrackProduct(c.Request.Context(), input.URL, input.TargetPrice); err != nil {
+
+	if err := h.services.Create(c.Request.Context(), &input); err != nil {
+		h.logger.Error("failed to create product", slog.String("error", err.Error()))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Product tracked"})
+
+	h.logger.Info("product created successfully", slog.String("url", input.URL))
+	c.JSON(http.StatusCreated, input)
+}
+
+// GetProduct handler
+func (h *Handler) GetProduct(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	product, err := h.services.GetByID(c.Request.Context(), id)
+	if err != nil {
+		h.logger.Error("failed to get product", slog.Int64("id", id), slog.String("error", err.Error()))
+		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, product)
 }

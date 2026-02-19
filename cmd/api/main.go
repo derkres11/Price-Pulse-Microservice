@@ -44,7 +44,7 @@ func main() {
 	}()
 
 	// Initialize Handler and wrap Gin into standard http.Server
-	handler := transportHTTP.NewHandler(productService)
+	handler := transportHTTP.NewHandler(productService, logger)
 
 	srv := &http.Server{
 		Addr:    ":8080",
