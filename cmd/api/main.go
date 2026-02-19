@@ -3,41 +3,42 @@ package main
 import (
 	"context"
 	"log"
+	"pricepulse/internal/broker"
 	"pricepulse/internal/database"
+	"pricepulse/internal/service"
+	"pricepulse/internal/transport/http"
 
-	"github.com/derkres11/price-pulse/internal/service"
-	"github.com/derkres11/price-pulse/internal/transport/http"
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	_ = godotenv.Load()
 
-	// 1. Инфраструктура
 	dbPool := database.NewPostgresPool()
 	defer dbPool.Close()
 
-	// 2. Брокер (Producer)
-	producer := broker.NewProductProducer([]string{"localhost:9092"}, "product_updates")
+	brokers := []string{"localhost:9092"}
+
+	producer := broker.NewProductProducer(brokers, "product_updates")
 	defer producer.Close()
 
-	// 3. Слои приложения
 	repo := database.NewProductRepo(dbPool)
-	svc := service.NewProductService(repo, producer)
 
-	// 4. ЗАПУСК КОНСЬЮМЕРА (Watcher)
-	// Запускаем в фоне через 'go func()'
-	consumer := broker.NewProductConsumer([]string{"localhost:9092"}, "product_updates", "watcher-group")
+	productService := service.NewProductService(repo, producer)
+
+	consumer := broker.NewProductConsumer(brokers, "product_updates", "watcher-group")
 	go func() {
-		log.Println("Watcher: Kafka Consumer is running...")
+		log.Println("Watcher: background consumer started")
 		consumer.Start(context.Background(), func(id int64) error {
-			// Здесь вызываем метод сервиса, который мы подготовили
-			return svc.ProcessSingleProduct(context.Background(), id)
+			return productService.ProcessSingleProduct(context.Background(), id)
 		})
 	}()
 
-	// 5. Запуск API
-	handler := http.NewHandler(svc)
-	log.Println("API: Server is running on :8080")
-	handler.InitRoutes().Run(":8080")
+	handler := http.NewHandler(productService)
+	srv := handler.InitRoutes()
+
+	log.Println("Server started on :8080")
+	if err := srv.Run(":8080"); err != nil {
+		log.Fatalf("error running server: %s", err.Error())
+	}
 }

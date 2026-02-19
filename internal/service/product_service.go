@@ -32,7 +32,6 @@ func (s *ProductService) TrackProduct(ctx context.Context, url string, target_pr
 		return err
 	}
 
-	// Отправка в Kafka
 	return s.producer.SendProductUpdate(ctx, p.ID)
 }
 
@@ -67,4 +66,11 @@ func (s *ProductService) CheckPrices(ctx context.Context) error {
 
 func (s *ProductService) mockFetchPrice(url string) (float64, error) {
 	return 99.99, nil
+}
+
+// ProcessSingleProduct is the core logic for the Watcher
+func (s *ProductService) ProcessSingleProduct(ctx context.Context, id int64) error {
+	log.Printf("Watcher: processing product %d", id)
+	newPrice, _ := s.mockFetchPrice("url")
+	return s.repo.UpdatePrice(ctx, id, newPrice)
 }
