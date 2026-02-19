@@ -2,21 +2,28 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http" // Standard library for HTTP server
+	"log/slog" // New structured logging package
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/derkres11/price-pulse/internal/broker"
 	"github.com/derkres11/price-pulse/internal/database"
 	"github.com/derkres11/price-pulse/internal/service"
-	transportHTTP "github.com/derkres11/price-pulse/internal/transport/http" // Alias to avoid conflict with net/http
+	transportHTTP "github.com/derkres11/price-pulse/internal/transport/http"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	_ = godotenv.Load()
+	// Initialize structured logger (JSON format)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger) // Set as global logger
+
+	if err := godotenv.Load(); err != nil {
+		slog.Warn("No .env file found, using system environment variables")
+	}
 
 	// Resource initialization
 	dbPool := database.NewPostgresPool()
@@ -30,7 +37,7 @@ func main() {
 	// Start Background Consumer (Watcher)
 	consumer := broker.NewProductConsumer(brokers, "product_updates", "watcher-group")
 	go func() {
-		log.Println("Watcher: background consumer started")
+		slog.Info("Watcher: background consumer started")
 		consumer.Start(context.Background(), func(id int64) error {
 			return productService.ProcessSingleProduct(context.Background(), id)
 		})
@@ -44,22 +51,43 @@ func main() {
 		Handler: handler.InitRoutes(),
 	}
 
-	// Start HTTP server in a goroutine so it doesn't block
+	// Start HTTP server in a goroutine
 	go func() {
-		log.Println("Server started on :8080")
+		slog.Info("Server started", slog.String("port", "8080"))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("error running server: %s", err.Error())
+			slog.Error("Failed to run server", slog.String("error", err.Error()))
+			os.Exit(1)
 		}
 	}()
 
 	// --- SECTION: GRACEFUL SHUTDOWN ---
 
-	// Create channel to listen for OS signals
 	quit := make(chan os.Signal, 1)
-	// Notify channel on interrupt (Ctrl+C) or termination signals
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	// Block until we receive a signal
 	<-quit
-	log.Println("Shutdown signal received, shutting down gracefully...")
+	slog.Info("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 1. Shutdown HTTP server gracefully
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("Server forced to shutdown", slog.String("error", err.Error()))
+	}
+
+	// 2. Close Kafka Producer
+	if err := producer.Close(); err != nil {
+		slog.Error("Kafka producer close error", slog.String("error", err.Error()))
+	}
+
+	// 3. Close Kafka Consumer
+	if err := consumer.Close(); err != nil {
+		slog.Error("Kafka consumer close error", slog.String("error", err.Error()))
+	}
+
+	// 4. Close Database connection pool
+	dbPool.Close()
+
+	slog.Info("Server exited properly")
 }
