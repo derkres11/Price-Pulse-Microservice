@@ -48,7 +48,7 @@ func (r *ProductRepo) UpdatePrice(ctx context.Context, id int64, newPrice float6
 
 func (r *ProductRepo) GetAll(ctx context.Context) ([]domain.Product, error){
 	query := `SELECT id, url, title, current_price, target_price, created_at, updated_at FROM products`
-	rows, err = r.pool.Query(ctx, query){
+	rows, err = r.pool.Query(ctx, query) {
 		if err != nil{
 			return nil, err
 		}
@@ -57,8 +57,8 @@ func (r *ProductRepo) GetAll(ctx context.Context) ([]domain.Product, error){
 
 		var products []domain.Product
 		for rows.Next() {
-			var p domain.Productif
-			if err != rows.Scan(&p.ID, &p.URL, &p.Title, &p.CurrentPrice, &p.TargetPrice, &p.CreatedAt, &p.UpdatedAt) {
+			var p domain.Product
+			if err := rows.Scan(&p.ID, &p.URL, &p.Title, &p.CurrentPrice, &p.TargetPrice, &p.CreatedAt, &p.UpdatedAt); err != nil {
 				return nil, err
 			}
 			products = append(products, p)

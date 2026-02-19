@@ -11,12 +11,23 @@ import (
 
 type ProductService struct {
 	repo domain.ProductRepository
+	producer *broker.ProductProducer
 }
 
 func NewProductService(repo domain.ProductRepository) *ProductService {
 	return &ProductService{repo: repo}
 }
 
+func (s *ProductService) TrackProduct(ctx context.Context, url string, target float64) error {
+	p := &domain.Product{URL: url, TargetPrice: target}
+	err := s.repo.Create(ctx, p)
+	if err != nil {
+		return err
+	}
+
+
+	return s.producer.SendProductUpdate(ctx, p.ID)
+}
 
 func (s *ProductService) TrackProduct(ctx context.context, url string, target_price float64) error {
 	p := &domain.Product{
@@ -59,5 +70,11 @@ func (s *ProductService) CheckPrices(ctx context.Context) error {
 	return nil
 
 
+}
+
+func (s *ProductService) mockFetchPrice(url string) (float64, error) {
+	// This is a stub. In a real implementation, you'd fetch the page and parse the price.
+	// For now, let's just return a random price for demonstration purposes.
+	return 99.99, nil
 }
 
