@@ -17,6 +17,8 @@ func main() {
 	dbPool := database.NewPostgresPool()
 	defer dbPool.Close()
 
+	cache := database.NewCache("localhost:6379")
+
 	brokers := []string{"localhost:9092"}
 
 	producer := broker.NewProductProducer(brokers, "product_updates")
@@ -24,7 +26,7 @@ func main() {
 
 	repo := database.NewProductRepo(dbPool)
 
-	productService := service.NewProductService(repo, producer)
+	productService := service.NewProductService(repo, producer, cache)
 
 	consumer := broker.NewProductConsumer(brokers, "product_updates", "watcher-group")
 	go func() {
