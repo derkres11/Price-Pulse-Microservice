@@ -12,7 +12,7 @@ stop:
 	docker-compose -f $(DOCKER_CONFIG) down
 
 build:
-	go build -o bin/$(APP_NAME) cmd/app/main.go
+	go build -o bin/$(APP_NAME) cmd/api/main.go
 
 logs:
 	docker-compose -f $(DOCKER_CONFIG) logs -f

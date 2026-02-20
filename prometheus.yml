@@ -4,4 +4,4 @@ global:
 scrape_configs:
   - job_name: 'price-pulse-app'
     static_configs:
-      - targets: ['app:8080'] # 'app' — это имя твоего Go-контейнера в докере
+      - targets: ['app:8080']

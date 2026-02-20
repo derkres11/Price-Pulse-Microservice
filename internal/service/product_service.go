@@ -11,15 +11,15 @@ import (
 
 type ProductService struct {
 	repo     domain.ProductRepository
-	producer domain.TaskProducer // Используем интерфейс
-	cache    domain.ProductCache // Используем интерфейс
+	producer domain.TaskProducer
+	cache    domain.ProductCache
 	logger   *slog.Logger
 }
 
 func NewProductService(
 	repo domain.ProductRepository,
-	producer domain.TaskProducer, // БЫЛО: *broker.ProductProducer
-	cache domain.ProductCache, // БЫЛО: *database.Cache
+	producer domain.TaskProducer,
+	cache domain.ProductCache,
 	logger *slog.Logger,
 ) *ProductService {
 	return &ProductService{
@@ -31,25 +31,25 @@ func NewProductService(
 }
 
 func (s *ProductService) Create(ctx context.Context, p *domain.Product) error {
-	// Log the action with attributes
 	s.logger.Info("creating new product", slog.String("url", p.URL))
 
+	//Save to DB
 	if err := s.repo.Create(ctx, p); err != nil {
 		s.logger.Error("failed to create product in db",
 			slog.String("error", err.Error()),
-			slog.String("url", p.URL),
-		)
+			slog.String("url", p.URL))
 		return err
 	}
+
+	//Sending to Kafka
 	if err := s.producer.SendProductUpdate(ctx, p.ID); err != nil {
-		s.logger.Error("failed to send kafka notification", "error", err)
-		// Обычно мы не прерываем создание продукта, если кафка отвалилась,
-		// но логируем это.
+		s.logger.Error("failed to send kafka notification",
+			slog.Int64("id", p.ID),
+			slog.String("error", err.Error()))
+
 	}
 
-	// Send to Kafka...
 	return nil
-
 }
 func (s *ProductService) TrackProduct(ctx context.Context, url string, target_price float64) error {
 	p := &domain.Product{
