@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package v1;
+
+option go_package = "github.com/derkres11/price-pulse/pkg/api/v1;v1";
+
+import "google/protobuf/timestamp.proto";
+
+service ProductService {
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+}
+
+message GetProductRequest {
+  int64 id = 1;
+}
+
+message GetProductResponse {
+  int64 id = 1;
+  string title = 2;
+  double current_price = 3;
+  double target_price = 4;
+  google.protobuf.Timestamp created_at = 5;
+}

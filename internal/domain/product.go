@@ -28,8 +28,11 @@ type ProductRepository interface {
 
 // ProductService defines the business logic operations
 type ProductService interface {
+	Create(ctx context.Context, p *Product) error
+	GetByID(ctx context.Context, id int64) (*Product, error)
 	TrackProduct(ctx context.Context, url string, targetPrice float64) error
 	CheckPrices(ctx context.Context) error
+	ProcessSingleProduct(ctx context.Context, id int64) error
 }
 
 // TaskProducer defines the behavior for sending async tasks to Kafka
@@ -41,4 +44,5 @@ type TaskProducer interface {
 type ProductCache interface {
 	SetPrice(ctx context.Context, id int64, price float64) error // changed name
 	Get(ctx context.Context, id int64) (*Product, error)
+	Delete(ctx context.Context, id int64) error
 }

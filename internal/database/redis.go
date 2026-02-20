@@ -37,7 +37,7 @@ func (c *Cache) Get(ctx context.Context, id int64) (*domain.Product, error) {
 
 	val, err := c.client.Get(ctx, key).Result()
 	if err == redis.Nil {
-		return nil, nil // В кеше ничего нет — это не ошибка
+		return nil, nil
 	}
 	if err != nil {
 		return nil, err

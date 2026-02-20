@@ -109,14 +109,24 @@ func (s *ProductService) ProcessSingleProduct(ctx context.Context, id int64) err
 }
 
 func (s *ProductService) GetByID(ctx context.Context, id int64) (*domain.Product, error) {
-	s.logger.Info("fetching product by id", slog.Int64("id", id))
+	s.logger.Info("fetching product", slog.Int64("id", id))
 
-	// First, try to get from repo (later you can add Redis logic here)
+	// Trying to get from Cache
+	cachedProduct, err := s.cache.Get(ctx, id)
+	if err == nil && cachedProduct != nil {
+		s.logger.Debug("cache hit", slog.Int64("id", id))
+		return cachedProduct, nil
+	}
+
+	// Going to DB if not found in cache
 	product, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to find product", slog.Int64("id", id), slog.String("error", err.Error()))
+		s.logger.Error("failed to find product in db", slog.Int64("id", id), slog.String("error", err.Error()))
 		return nil, err
 	}
+
+	// Caching
+	s.logger.Debug("cache miss, loading from db", slog.Int64("id", id))
 
 	return product, nil
 }
