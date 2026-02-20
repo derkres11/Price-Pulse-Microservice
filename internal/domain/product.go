@@ -31,3 +31,14 @@ type ProductService interface {
 	TrackProduct(ctx context.Context, url string, targetPrice float64) error
 	CheckPrices(ctx context.Context) error
 }
+
+// TaskProducer defines the behavior for sending async tasks to Kafka
+type TaskProducer interface {
+	SendProductUpdate(ctx context.Context, id int64) error // changed name
+}
+
+// ProductCache defines the behavior for caching product data in Redis
+type ProductCache interface {
+	SetPrice(ctx context.Context, id int64, price float64) error // changed name
+	Get(ctx context.Context, id int64) (*Product, error)
+}

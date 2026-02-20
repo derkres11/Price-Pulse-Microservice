@@ -6,19 +6,22 @@ import (
 	"log"
 	"log/slog"
 
-	"github.com/derkres11/price-pulse/internal/broker"
-	"github.com/derkres11/price-pulse/internal/database"
 	"github.com/derkres11/price-pulse/internal/domain"
 )
 
 type ProductService struct {
 	repo     domain.ProductRepository
-	producer *broker.ProductProducer
-	cache    *database.Cache
+	producer domain.TaskProducer // Используем интерфейс
+	cache    domain.ProductCache // Используем интерфейс
 	logger   *slog.Logger
 }
 
-func NewProductService(repo domain.ProductRepository, producer *broker.ProductProducer, cache *database.Cache, logger *slog.Logger) *ProductService {
+func NewProductService(
+	repo domain.ProductRepository,
+	producer domain.TaskProducer, // БЫЛО: *broker.ProductProducer
+	cache domain.ProductCache, // БЫЛО: *database.Cache
+	logger *slog.Logger,
+) *ProductService {
 	return &ProductService{
 		repo:     repo,
 		producer: producer,

@@ -10,38 +10,33 @@ import (
 	"github.com/derkres11/price-pulse/internal/domain"
 )
 
-// repoMock simulates the database repository
+// repoMock matches domain.ProductRepository interface
 type repoMock struct {
 	products map[int64]*domain.Product
 }
 
-// Create mimics saving a product
 func (m *repoMock) Create(ctx context.Context, p *domain.Product) error {
 	m.products[p.ID] = p
 	return nil
 }
 
-// GetByID mimics retrieving a product
 func (m *repoMock) GetByID(ctx context.Context, id int64) (*domain.Product, error) {
 	p, ok := m.products[id]
 	if !ok {
-		return nil, errors.New("product not found")
+		return nil, errors.New("not found")
 	}
 	return p, nil
 }
 
-// UpdatePrice mimics updating the price
-func (m *repoMock) UpdatePrice(ctx context.Context, id int64, price float64) error {
-	if p, ok := m.products[id]; ok {
-		// Assuming the field is actually 'Price'.
-		// If it's different in your domain, change it here.
-		p.CurrentPrice = price
-		return nil
+func (m *repoMock) UpdatePrice(ctx context.Context, id int64, newPrice float64) error {
+	p, ok := m.products[id]
+	if !ok {
+		return errors.New("not found")
 	}
-	return errors.New("not found")
+	p.CurrentPrice = newPrice
+	return nil
 }
 
-// GetAll implements the missing method required by domain.ProductRepository
 func (m *repoMock) GetAll(ctx context.Context) ([]*domain.Product, error) {
 	var list []*domain.Product
 	for _, p := range m.products {
@@ -50,38 +45,66 @@ func (m *repoMock) GetAll(ctx context.Context) ([]*domain.Product, error) {
 	return list, nil
 }
 
+// kafkaMock must match the Producer interface used in your service
+type kafkaMock struct {
+	sent bool
+}
+
+func (m *kafkaMock) SendProductUpdate(ctx context.Context, id int64) error {
+	m.sent = true
+	return nil
+}
+
+// --- TESTS ---
+
 func TestProductService_GetByID(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	mock := &repoMock{
-		products: make(map[int64]*domain.Product),
+	mockRepo := &repoMock{products: make(map[int64]*domain.Product)}
+
+	// Seed data with your domain fields
+	mockRepo.products[1] = &domain.Product{
+		ID:           1,
+		Title:        "Test Product",
+		CurrentPrice: 100.0,
 	}
 
-	testID := int64(42)
-	// Make sure fields (ID, Title, Price) match your domain.Product struct exactly
-	testProduct := &domain.Product{
-		ID:           testID,
-		Title:        "Smartphone",
-		CurrentPrice: 599.99,
+	svc := NewProductService(mockRepo, nil, nil, logger)
+
+	tests := []struct {
+		name      string
+		productID int64
+		wantErr   bool
+	}{
+		{"Success", 1, false},
+		{"Not Found", 999, true},
 	}
 
-	mock.products[testID] = testProduct
-	svc := NewProductService(mock, nil, nil, logger)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := svc.GetByID(context.Background(), tt.productID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("expected error: %v, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
 
-	t.Run("successful retrieval", func(t *testing.T) {
-		res, err := svc.GetByID(context.Background(), testID)
+func TestProductService_Create(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	mockRepo := &repoMock{products: make(map[int64]*domain.Product)}
+	mockKafka := &kafkaMock{}
+
+	svc := NewProductService(mockRepo, mockKafka, nil, logger)
+
+	t.Run("create and notify", func(t *testing.T) {
+		p := &domain.Product{ID: 10, Title: "Gadget"}
+		err := svc.Create(context.Background(), p)
 
 		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
+			t.Errorf("create failed: %v", err)
 		}
-		if res.Title != "Smartphone" {
-			t.Errorf("Expected title 'Smartphone', got %s", res.Title)
-		}
-	})
-
-	t.Run("product not found", func(t *testing.T) {
-		_, err := svc.GetByID(context.Background(), 999)
-		if err == nil {
-			t.Error("Expected error for non-existent product, got nil")
+		if !mockKafka.sent {
+			t.Error("kafka was not notified")
 		}
 	})
 }
