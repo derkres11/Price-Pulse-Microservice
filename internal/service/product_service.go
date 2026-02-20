@@ -41,6 +41,11 @@ func (s *ProductService) Create(ctx context.Context, p *domain.Product) error {
 		)
 		return err
 	}
+	if err := s.producer.SendProductUpdate(ctx, p.ID); err != nil {
+		s.logger.Error("failed to send kafka notification", "error", err)
+		// Обычно мы не прерываем создание продукта, если кафка отвалилась,
+		// но логируем это.
+	}
 
 	// Send to Kafka...
 	return nil
