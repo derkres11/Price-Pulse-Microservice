@@ -9,11 +9,16 @@ import (
 	"syscall"
 	"time"
 
+	"net"
+
 	"github.com/derkres11/price-pulse/internal/broker"
 	"github.com/derkres11/price-pulse/internal/database"
 	"github.com/derkres11/price-pulse/internal/service"
+	grpcHandler "github.com/derkres11/price-pulse/internal/transport/grpc"
 	transportHTTP "github.com/derkres11/price-pulse/internal/transport/http"
+	desc "github.com/derkres11/price-pulse/pkg/api/v1"
 	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -50,6 +55,22 @@ func main() {
 		Addr:    ":8080",
 		Handler: handler.InitRoutes(),
 	}
+
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		slog.Error("failed to listen for gRPC", "error", err)
+		os.Exit(1)
+	}
+
+	sServer := grpc.NewServer()
+	desc.RegisterProductServiceServer(sServer, grpcHandler.NewHandler(productService))
+
+	go func() {
+		slog.Info("gRPC server started", slog.String("port", "50051"))
+		if err := sServer.Serve(lis); err != nil {
+			slog.Error("gRPC server failed", "error", err)
+		}
+	}()
 
 	// Start HTTP server in a goroutine
 	go func() {
