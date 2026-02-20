@@ -23,7 +23,7 @@ type ProductRepository interface {
 	Create(ctx context.Context, p *Product) error
 	GetByID(ctx context.Context, id int64) (*Product, error)
 	UpdatePrice(ctx context.Context, id int64, newPrice float64) error
-	GetAll(ctx context.Context) ([]Product, error)
+	GetAll(ctx context.Context) ([]*Product, error)
 }
 
 // ProductService defines the business logic operations

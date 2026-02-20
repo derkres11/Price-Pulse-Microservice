@@ -44,7 +44,8 @@ func (r *ProductRepo) UpdatePrice(ctx context.Context, id int64, newPrice float6
 	return err
 }
 
-func (r *ProductRepo) GetAll(ctx context.Context) ([]domain.Product, error) {
+// Change return type to []*domain.Product
+func (r *ProductRepo) GetAll(ctx context.Context) ([]*domain.Product, error) {
 	query := `SELECT id, url, title, current_price, target_price, created_at, updated_at FROM products`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -52,9 +53,9 @@ func (r *ProductRepo) GetAll(ctx context.Context) ([]domain.Product, error) {
 	}
 	defer rows.Close()
 
-	var products []domain.Product
+	var products []*domain.Product // Now it's a slice of pointers
 	for rows.Next() {
-		var p domain.Product
+		p := &domain.Product{} // Create a pointer to a new product
 		if err := rows.Scan(&p.ID, &p.URL, &p.Title, &p.CurrentPrice, &p.TargetPrice, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, err
 		}

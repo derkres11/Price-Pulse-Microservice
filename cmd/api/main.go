@@ -32,7 +32,7 @@ func main() {
 
 	producer := broker.NewProductProducer(brokers, "product_updates")
 	repo := database.NewProductRepo(dbPool)
-	productService := service.NewProductService(repo, producer, cache, logger)
+	productService := service.NewProductService(*repo, producer, cache, logger)
 
 	// Start Background Consumer (Watcher)
 	consumer := broker.NewProductConsumer(brokers, "product_updates", "watcher-group")
